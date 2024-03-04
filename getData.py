@@ -164,9 +164,4 @@ def getData(kode="",fromx="",endx="",xData="", maxLvl = 1,run=True,db=False):
             time.sleep(1)
             getData(kode=kode,fromx=fromx,endx=endx,xData=xData,maxLvl=maxLvl,db=db)
     return True
-# python3 -m getData.py
-# fromx = 3
-# input("Masukkan kode daerah awal:")
-# print(fromx)
-# getData(fromx="99",xData="wilayah",maxLvl=5)
-getData(fromx="99",xData="data",maxLvl=5)
+getData(fromx=sys.argv[1],xData="data",maxLvl=5)
