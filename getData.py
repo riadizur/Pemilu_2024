@@ -3,10 +3,19 @@ import json
 import os
 import time
 import sqlite3
-import sys
 from datetime import datetime
 
 mydb = sqlite3.connect("pemilu2024.db")
+def insertData(tableName,fieldName,data):
+    mycursor = mydb.cursor()
+
+    sql = "INSERT INTO %s (%s) VALUES (%s)",tableName, fieldName, data
+    # mycursor.execute(sql)
+
+    # mydb.commit()
+    print(sql)
+    # print(mycursor.rowcount, "record inserted.")
+# print(mydb)
 
 def getData(kode="",fromx="",endx="",xData="", maxLvl = 1,run=True,db=False):
     mainUrl = "https://sirekap-obj-data.kpu.go.id"
@@ -44,7 +53,7 @@ def getData(kode="",fromx="",endx="",xData="", maxLvl = 1,run=True,db=False):
     directory = os.getcwd() + "/Assets" + urlx + dirx
     filex = os.getcwd() +  "/Assets" + urlx + target +".json"
     url = mainUrl + urlx + target +".json"
-    print(datetime.now(),"\tGETTING DATA TO SERVER...",url)
+    print(datetime.now(),"\tGET DATA TO URL\t",url)
 
     payload = {}
     headers = {}
@@ -55,10 +64,10 @@ def getData(kode="",fromx="",endx="",xData="", maxLvl = 1,run=True,db=False):
         if(resp.json()):
             if not os.path.exists(directory):
                 os.makedirs(directory)
-                print(datetime.now(),"\tCREATING DIRECTORY...",directory)
+                print(datetime.now(),"\tCREATING DIRECTORY\t",directory)
             with open(filex, mode="w", encoding="utf-8") as resp_file:
                 resp_file.write(resp.text)
-            print(datetime.now(),"\tFILE SAVED TO DIRECTORY !",filex)
+            print(datetime.now(),"\tFILE SAVED\t",filex)
             data = json.loads(resp.text);
             # print(data)
             if(xData == "wilayah"):
@@ -102,30 +111,13 @@ def getData(kode="",fromx="",endx="",xData="", maxLvl = 1,run=True,db=False):
                     # print(kode,len(kode))
                     datatable = data["table"]
                     # print(datatable)
-                    dat = {}
-                    dat["link_data"]=url
-                    dat["local_directory"]=filex
                     for name, value in datatable.items():
+                        dat = {}
                         # print(name,value)
                         kode = name
-                        dat["kode"]=kode
                         for ex, val in value.items():
                             dat[ex]=val
                         # print(datetime.now(),"\t",dat)
-                        field = ""
-                        qval = ""
-                        table = "vote_presiden_kompilasi_"+str(datetime.now().strftime("%Y%m%d"))
-                        for x,y in dat.items():
-                            field = field + "`" + x + "`"+","
-                            qval = qval + "'"+ str(y) + "'"+","
-                        field = field[:-1]
-                        qval = qval[:-1]
-                        if(db):
-                            sql = "INSERT INTO "+table+" ("+field+") VALUES ("+qval+");"
-                            print(datetime.now(),"\tINSERT DATA TO TABLE : ",table,sql)
-                            mycursor = mydb.cursor()
-                            mycursor.execute(sql)
-                            mydb.commit()
                         getData(kode=kode,fromx=fromx,endx=endx,xData=xData,maxLvl=maxLvl,db=db)
                 else:
                     # print("data")
@@ -145,21 +137,23 @@ def getData(kode="",fromx="",endx="",xData="", maxLvl = 1,run=True,db=False):
                         else:
                             # print(item,value)
                             dat[item]=value
-                    # print(datetime.now(),"\tDATA\t",dat)
+                    print(datetime.now(),"\tDATA\t",dat)
                     field = ""
                     qval = ""
-                    table = "vote_presiden_"+str(datetime.now().strftime("%Y%m%d"))
+                    n=0
+                    table = "vote_presiden"
                     for x,y in dat.items():
-                        field = field + "`" + x + "`"+","
-                        qval = qval + "'"+ str(y) + "'"+","
-                    field = field[:-1]
-                    qval = qval[:-1]
-                    if(db):
-                        sql = "INSERT INTO "+table+" ("+field+") VALUES ("+qval+");"
-                        print(datetime.now(),"\tINSERT DATA TO TABLE : ",table,sql)
-                        mycursor = mydb.cursor()
-                        mycursor.execute(sql)
-                        mydb.commit()
+                        if(n>0):
+                            field = field + ","
+                            qval = qval + ","
+                        field = field + x
+                        qval = qval + "\""+ str(y) + "\""
+                        n = n+1
+                    sql = "INSERT INTO "+table+" ("+field+") VALUES ("+qval+");"
+                    print(datetime.now(),"\t",sql)
+                    mycursor = mydb.cursor()
+                    mycursor.execute(sql)
+                    mydb.commit()
                     return 0
         else:
             if(run):
@@ -170,70 +164,9 @@ def getData(kode="",fromx="",endx="",xData="", maxLvl = 1,run=True,db=False):
             time.sleep(1)
             getData(kode=kode,fromx=fromx,endx=endx,xData=xData,maxLvl=maxLvl,db=db)
     return True
-
-def createEnvTable_for_data():
-    mycursor = mydb.cursor()
-    sql = "CREATE TABLE IF NOT EXISTS vote_presiden_"+str(datetime.now().strftime("%Y%m%d"))+" AS SELECT * FROM vote_presiden WHERE 0"
-    mycursor.execute(sql)
-    mydb.commit()
-    sql = "CREATE TABLE IF NOT EXISTS vote_presiden_kompilasi_"+str(datetime.now().strftime("%Y%m%d"))+" AS SELECT * FROM vote_presiden_kompilasi WHERE 0"
-    mycursor.execute(sql)
-    mydb.commit()
-    return 0
-
-def data():
-    createEnvTable_for_data()
-    return "data"
-
-def wilayah():
-    return "wilayah"
-
-def isdb(x=""):
-    if(x=="db"):
-        createEnvTable_for_data()
-        return True
-    return False
-
-# nohup python3 -m /Users/riadizur/Library/Mobile Documents/com~apple~CloudDocs/Pemilu 2024/getData_onlocal.py 11
-# kode = input("Masukkan kode daerah awal:")
-
-# print(kode)
-getData(kode=sys.argv[1],xData=data(),maxLvl=5,db = isdb(sys.argv[2]))
-# getData(kode="12",xData="data",maxLvl=5)
-# getData(kode="13",xData="data",maxLvl=5)
-# getData(kode="14",xData="data",maxLvl=5)
-# getData(kode="15",xData="data",maxLvl=5)
-# getData(kode="16",xData="data",maxLvl=5)
-# getData(kode="17",xData="data",maxLvl=5)
-# getData(kode="18",xData="data",maxLvl=5)
-# getData(kode="19",xData="data",maxLvl=5)
-# getData(kode="21",xData="data",maxLvl=5)
-# getData(kode="31",xData="data",maxLvl=5)
-# getData(kode="32",xData="data",maxLvl=5)
-# getData(kode="33",xData="data",maxLvl=5)
-# getData(kode="34",xData="data",maxLvl=5)
-# getData(kode="35",xData="data",maxLvl=5)
-# getData(kode="36",xData="data",maxLvl=5)
-# getData(kode="51",xData="data",maxLvl=5)
-# getData(kode="52",xData="data",maxLvl=5)
-# getData(kode="53",xData="data",maxLvl=5)
-# getData(kode="61",xData="data",maxLvl=5)//
-# getData(kode="62",xData="data",maxLvl=5)
-# getData(kode="63",xData="data",maxLvl=5)
-# getData(kode="64",xData="data",maxLvl=5)
-# getData(kode="65",xData="data",maxLvl=5)
-# getData(kode="71",xData="data",maxLvl=5)
-# getData(kode="72",xData="data",maxLvl=5)
-# getData(kode="73",xData="data",maxLvl=5)
-# getData(kode="74",xData="data",maxLvl=5)
-# getData(kode="75",xData="data",maxLvl=5)
-# getData(kode="76",xData="data",maxLvl=5)
-# getData(kode="81",xData="data",maxLvl=5)
-# getData(kode="82",xData="data",maxLvl=5)
-# getData(kode="91",xData="data",maxLvl=5)  
-# getData(kode="92",xData="data",maxLvl=5)
-# getData(kode="93",xData="data",maxLvl=5)
-# getData(kode="94",xData="data",maxLvl=5)
-# getData(kode="95",xData="data",maxLvl=5)
-# getData(kode="96",xData="data",maxLvl=5)
-# getData(kode="99",xData="data",maxLvl=5)
+# python3 -m getData.py
+# fromx = 3
+# input("Masukkan kode daerah awal:")
+# print(fromx)
+# getData(fromx="99",xData="wilayah",maxLvl=5)
+getData(fromx="99",xData="data",maxLvl=5)
